@@ -28,88 +28,6 @@ volatile uint8_t ppmMicroPPM = 0;  // status flag for 'Futaba microPPM mode'
 #define BZ_FREQ 2000
 #endif
 
-/****************************************************
- * Interrupt Vector
- ****************************************************/
-
-static inline void processPulse(uint16_t pulse)
-{
-  if (ppmDetecting) {
-    if (ppmDetecting>50) {
-      ppmDetecting=0;
-      if (ppmMicroPPM>10) {
-        ppmMicroPPM=1;
-      } else {
-        ppmMicroPPM=0;
-      }
-      // Serial.println(ppmMicroPPM?"Futaba micro mode":"Normal PPM mode");
-    } else {
-      if (pulse<1500) {
-        ppmMicroPPM++;
-      }
-      ppmDetecting++;
-    }
-  } else {
-
-    if (!ppmMicroPPM) {
-      pulse>>=1; // divide by 2 to get servo value on normal PPM
-    }
-
-    if (pulse > 2500) {      // Verify if this is the sync pulse (2.5ms)
-      ppmCounter = 0;             // -> restart the channel counter
-      ppmAge = 0;                 // brand new PPM data received
-    } else if ((pulse > 700) && (ppmCounter < PPM_CHANNELS)) { // extra channels will get ignored here
-      PPM[ppmCounter++] = servoUs2Bits(pulse);   // Store measured pulse length (converted)
-    } else {
-      ppmCounter = PPM_CHANNELS; // glitch ignore rest of data
-    }
-  }
-}
-
-#ifdef USE_ICP1 // Use ICP1 in input capture mode
-volatile uint16_t startPulse = 0;
-ISR(TIMER1_CAPT_vect)
-{
-  uint16_t stopPulse = ICR1;
-  processPulse(stopPulse - startPulse); // as top is 65535 uint16 math will take care of rollover
-  startPulse = stopPulse;         // Save time at pulse start
-}
-
-void setupPPMinput()
-{
-  ppmDetecting = 1;
-  ppmMicroPPM = 0;
-  // Setup timer1 for input capture (PSC=8 -> 0.5ms precision, falling edge)
-  TCCR1A = ((1 << WGM10) | (1 << WGM11));
-  TCCR1B = ((1 << WGM12) | (1 << WGM13) | (1 << CS11));
-  OCR1A = 65535;
-  TIMSK1 |= (1 << ICIE1);   // Enable timer1 input capture interrupt
-}
-
-#else // sample PPM using pinchange interrupt
-ISR(PPM_Signal_Interrupt)
-{
-  uint16_t pulseWidth;
-  if (!PPM_Signal_Edge_Check) {   // Falling edge detected
-    pulseWidth = TCNT1; // read the timer1 value
-    TCNT1 = 0; // reset the timer1 value for next
-    processPulse(pulseWidth);
-  }
-}
-
-void setupPPMinput(void)
-{
-  ppmDetecting = 1;
-  ppmMicroPPM = 0;
-  // Setup timer1 for input capture (PSC=8 -> 0.5ms precision, top at 20ms)
-  TCCR1A = ((1 << WGM10) | (1 << WGM11));
-  TCCR1B = ((1 << WGM12) | (1 << WGM13) | (1 << CS11));
-  OCR1A = 65535;
-  TIMSK1 = 0;
-  PPM_Pin_Interrupt_Setup
-}
-#endif
-
 void bindMode(void)
 {
   uint32_t prevsend = millis();
@@ -277,6 +195,8 @@ uint8_t serial_head;
 uint8_t serial_tail;
 uint8_t serial_okToSend; // 2 if it is ok to send serial instead of servo
 
+long lastPPM = millis();
+
 void setup(void)
 {
   uint32_t start;
@@ -365,6 +285,36 @@ void setup(void)
 
 void loop(void)
 {
+	long newPPM = millis();
+	if(newPPM - lastPPM > 20)
+	{
+		lastPPM = newPPM;
+
+		Wire.requestFrom(2, 14);
+		if(Wire.available())
+		{
+			char data[14];
+			int nrRead = Wire.readBytes(data, 14);
+
+			if(nrRead == 14)
+			{
+				for(int set = 0; set < 7; set++)
+				{
+					int val = (256 * (byte)data[set * 2]) + (byte)data[(set * 2) + 1];
+					int channel = val/1024;
+					int sValue = val%1024;
+
+					//Safety check
+					if(channel >= 0 && channel <= 6)
+					{
+						PPM[channel] = sValue;
+					}
+				}
+
+				ppmAge = 0;
+			}
+		}
+	}
 
   if (spiReadRegister(0x0C) == 0) {     // detect the locked module and reboot
     Serial.println("module locked?");
