@@ -42,7 +42,7 @@
 
 //####### COMPILATION TARGET #######
 // Enable to compile transmitter code, default is RX
-//#define COMPILE_TX
+#define COMPILE_TX
 
 //####### TX BOARD TYPE #######
 // 0 = Flytron OpenLRS M1 Tx Board (not verified)
@@ -52,15 +52,15 @@
 // 4 = OpenLRSngTX / HawkEye UHF TX
 // 5 = OpenLRSngRX-4ch (DTF UHF) as TX
 // 6 = DTF UHF DeluxeTX (Atmega32u4)
-#define TX_BOARD_TYPE 2
+#define TX_BOARD_TYPE 3
 
 //####### RX BOARD TYPE #######
 // 3 = Flytron OpenLRS Rx v2 / OrangeRx UHF RX / HawkEye UHF RX
 // 5 = OpenLRSngRX-4ch (DTF UHF)
-#define RX_BOARD_TYPE 5
+#define RX_BOARD_TYPE 3
 
 //###### SERIAL PORT SPEED - during configuration #######
-#define SERIAL_BAUD_RATE 115200 //115.200 baud serial port speed
+#define SERIAL_BAUD_RATE 57600 //57.600 baud serial port speed
 
 //### Module type selection (only for modified HW)
 //#define RFMXX_868
@@ -79,6 +79,7 @@
 #include "common.h"
 
 #ifdef COMPILE_TX
+#include "Wire.h"
 #include "binary_com.h"
 #include "dialog.h"
 #include "frskytx.h"

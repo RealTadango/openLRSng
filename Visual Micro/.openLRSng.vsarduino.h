@@ -1,6 +1,6 @@
 #ifndef _VSARDUINO_H_
 #define _VSARDUINO_H_
-//Board = Arduino Pro or Pro Mini (5V, 16 MHz) w/ ATmega328
+//Board = Arduino Mini w/ ATmega328
 #define __AVR_ATmega328P__
 #define 
 #define ARDUINO 105
@@ -30,7 +30,7 @@ typedef unsigned char byte;
 extern "C" void __cxa_pure_virtual() {;}
 
 
-#include "C:\Program Files (x86)\Arduino\hardware\arduino\variants\standard\pins_arduino.h" 
+#include "C:\Program Files (x86)\Arduino\hardware\arduino\variants\eightanaloginputs\pins_arduino.h" 
 #include "C:\Program Files (x86)\Arduino\hardware\arduino\cores\arduino\arduino.h"
 #include "C:\Users\Herman Kruisman\Documents\Arduino\openLRSng\openLRSng.ino"
 #include "C:\Users\Herman Kruisman\Documents\Arduino\openLRSng\RX.h"

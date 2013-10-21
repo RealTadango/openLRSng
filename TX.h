@@ -238,7 +238,6 @@ void setup(void)
     Serial.print("EEPROM data saved\n");
   }
 
-  setupPPMinput();
   ppmAge = 255;
 
   setupRfmInterrupt();
@@ -281,6 +280,7 @@ void setup(void)
     Serial.begin(bind_data.serial_baudrate);
   }
 
+  Wire.begin();
 }
 
 void loop(void)
@@ -312,6 +312,11 @@ void loop(void)
 				}
 
 				ppmAge = 0;
+			}
+
+			else
+			{
+				Serial.println("NO DATA FROM I2C");
 			}
 		}
 	}
